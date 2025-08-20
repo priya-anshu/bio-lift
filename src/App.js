@@ -1,23 +1,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Layout Components
-import Layout from '../src/components/layout/Layout';
+import Layout from './components/layout/Layout';
 
 // Page Components
-import Login from '../src/pages/Login';
-import Register from '../src/pages/Register';
-import Dashboard from '../src/pages/Dashboard';
-import Workout from '../src/pages/Workout';
-import Ranking from '../src/pages/Ranking';
-import Diet from '../src/pages/Diet';
-import Profile from '../src/pages/Profile';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Workout from './pages/Workout';
+import Ranking from './pages/Ranking';
+import Diet from './pages/Diet';
+import Profile from './pages/Profile';
 
-// Auth Context (for future use)
-import { AuthProvider } from '../src/context/AuthContext';
+// Auth Context
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Protected Route Wrapper
+const PrivateRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Loading...</div>; // Show loader while checking auth
+  if (!user) return <Navigate to="/login" replace />; // Redirect if not logged in
+
+  return children;
+};
 
 const App = () => {
   return (
@@ -27,18 +37,28 @@ const App = () => {
           <div className="min-h-screen bg-day-bg dark:bg-night-bg transition-colors duration-300">
             <AnimatePresence mode="wait">
               <Routes>
-                {/* Auth Routes */}
+                {/* Public Routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                
+
                 {/* Protected Routes */}
-                <Route path="/" element={<Layout />}>
+                <Route 
+                  path="/" 
+                  element={
+                    <PrivateRoute>
+                      <Layout />
+                    </PrivateRoute>
+                  }
+                >
                   <Route index element={<Dashboard />} />
                   <Route path="workout" element={<Workout />} />
                   <Route path="ranking" element={<Ranking />} />
                   <Route path="diet" element={<Diet />} />
                   <Route path="profile" element={<Profile />} />
                 </Route>
+
+                {/* Fallback: any unknown route → login */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </AnimatePresence>
           </div>
