@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Target,
   Calendar,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Badge from '../ui/Badge';
@@ -25,6 +26,8 @@ const Sidebar = ({ onClose }) => {
     { name: 'Workout', href: '/workout', icon: Dumbbell },
     { name: 'Ranking', href: '/ranking', icon: Trophy },
     { name: 'Diet', href: '/diet', icon: Apple },
+    { name: 'Social', href: '/social', icon: Users },
+    { name: 'Shop', href: '/shop', icon: TrendingUp },
     { name: 'Profile', href: '/profile', icon: User }
   ];
 
@@ -110,7 +113,7 @@ const Sidebar = ({ onClose }) => {
                     Points
                   </span>
                   <span className="font-medium text-day-text-primary dark:text-night-text-primary">
-                    {user.points.toLocaleString()}
+                    {(user.points ?? 0).toLocaleString()}
                   </span>
                 </div>
               </div>

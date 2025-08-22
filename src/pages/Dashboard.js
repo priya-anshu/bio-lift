@@ -13,110 +13,132 @@ import {
   Zap,
   Clock
 } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import { db } from '../firebase';
+import { ref, get, set, onValue, off } from 'firebase/database';
+
+
+
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState([]);
+  const [recentWorkouts, setRecentWorkouts] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [dbError, setDbError] = useState('');
 
-  // Mock data - replace with actual API calls
-  const stats = [
-    {
-      title: 'Workouts This Week',
-      value: '5',
-      change: '+2',
-      changeType: 'positive',
-      icon: Flame,
-      color: 'text-orange-500'
-    },
-    {
-      title: 'Calories Burned',
-      value: '2,450',
-      change: '+320',
-      changeType: 'positive',
-      icon: Zap,
-      color: 'text-yellow-500'
-    },
-    {
-      title: 'Active Minutes',
-      value: '180',
-      change: '+45',
-      changeType: 'positive',
-      icon: Clock,
-      color: 'text-blue-500'
-    },
-    {
-      title: 'Heart Rate Avg',
-      value: '142',
-      change: '-8',
-      changeType: 'negative',
-      icon: Heart,
-      color: 'text-red-500'
-    }
-  ];
-
-  const recentWorkouts = [
-    {
-      id: 1,
-      name: 'Upper Body Strength',
-      duration: '45 min',
-      calories: '320',
-      date: '2 hours ago',
-      type: 'Strength'
-    },
-    {
-      id: 2,
-      name: 'Cardio HIIT',
-      duration: '30 min',
-      calories: '280',
-      date: 'Yesterday',
-      type: 'Cardio'
-    },
-    {
-      id: 3,
-      name: 'Yoga Flow',
-      duration: '60 min',
-      calories: '180',
-      date: '2 days ago',
-      type: 'Flexibility'
-    }
-  ];
-
-  const goals = [
-    {
-      id: 1,
-      title: 'Weekly Workouts',
-      current: 5,
-      target: 7,
-      unit: 'workouts',
-      progress: 71
-    },
-    {
-      id: 2,
-      title: 'Monthly Calories',
-      current: 8500,
-      target: 12000,
-      unit: 'calories',
-      progress: 71
-    },
-    {
-      id: 3,
-      title: 'Weight Goal',
-      current: 75,
-      target: 70,
-      unit: 'kg',
-      progress: 50
-    }
-  ];
+  const ICON_MAP = {
+    Flame,
+    Zap,
+    Clock,
+    Heart,
+    Play,
+    Target,
+    TrendingUp
+  };
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!user?.uid) return;
+
+    const userDashRef = ref(db, `users/${user.uid}/dashboard`);
+    const statsRef = ref(db, `users/${user.uid}/dashboard/stats`);
+    const goalsRef = ref(db, `users/${user.uid}/dashboard/goals`);
+    const workoutsRef = ref(db, `users/${user.uid}/dashboard/recentWorkouts`);
+
+    let didCancel = false;
+
+    const seedDefaultsIfMissing = async () => {
+      try {
+        const snapshot = await get(userDashRef);
+        if (!snapshot.exists()) {
+          const defaults = {
+          stats: [
+            { title: 'Workouts This Week', value: '5', change: '+2', changeType: 'positive', icon: 'Flame', color: 'text-orange-500' },
+            { title: 'Calories Burned', value: '2,450', change: '+320', changeType: 'positive', icon: 'Zap', color: 'text-yellow-500' },
+            { title: 'Active Minutes', value: '180', change: '+45', changeType: 'positive', icon: 'Clock', color: 'text-blue-500' },
+            { title: 'Heart Rate Avg', value: '142', change: '-8', changeType: 'negative', icon: 'Heart', color: 'text-red-500' }
+          ],
+          goals: [
+            { id: 1, title: 'Weekly Workouts', current: 5, target: 7, unit: 'workouts', progress: 71 },
+            { id: 2, title: 'Monthly Calories', current: 8500, target: 12000, unit: 'calories', progress: 71 },
+            { id: 3, title: 'Weight Goal', current: 75, target: 70, unit: 'kg', progress: 50 }
+          ],
+          recentWorkouts: [
+            { id: 1, name: 'Upper Body Strength', duration: '45 min', calories: '320', date: '2 hours ago', type: 'Strength' },
+            { id: 2, name: 'Cardio HIIT', duration: '30 min', calories: '280', date: 'Yesterday', type: 'Cardio' },
+            { id: 3, name: 'Yoga Flow', duration: '60 min', calories: '180', date: '2 days ago', type: 'Flexibility' }
+          ]
+          };
+          await set(userDashRef, defaults);
+        }
+      } catch (e) {
+        setDbError('Failed to read/write dashboard data. Check database rules and authentication.');
+        // surface in console for debugging
+        // eslint-disable-next-line no-console
+        console.error('Dashboard DB access error at path:', `users/${user.uid}/dashboard`, e);
+        setLoading(false);
+      }
+    };
+
+    (async () => {
+      try {
+        await seedDefaultsIfMissing();
+      } catch {}
+
+      const handleError = (err) => {
+        setDbError(err?.message || 'Database error');
+        // eslint-disable-next-line no-console
+        console.error('onValue error:', err);
+        setLoading(false);
+      };
+
+      const unsubStats = onValue(statsRef, (snap) => {
+        if (didCancel) return;
+        const val = snap.val();
+        // eslint-disable-next-line no-console
+        console.log('stats value:', val);
+        setStats(Array.isArray(val) ? val : (val ? Object.values(val) : []));
+      }, handleError);
+      const unsubGoals = onValue(goalsRef, (snap) => {
+        if (didCancel) return;
+        const val = snap.val();
+        // eslint-disable-next-line no-console
+        console.log('goals value:', val);
+        setGoals(Array.isArray(val) ? val : (val ? Object.values(val) : []));
+      }, handleError);
+      const unsubWorkouts = onValue(workoutsRef, (snap) => {
+        if (didCancel) return;
+        const val = snap.val();
+        // eslint-disable-next-line no-console
+        console.log('recentWorkouts value:', val);
+        setRecentWorkouts(Array.isArray(val) ? val : (val ? Object.values(val) : []));
+      }, handleError);
+
+      setLoading(false);
+
+      return () => {
+        didCancel = true;
+        off(statsRef);
+        off(goalsRef);
+        off(workoutsRef);
+        if (typeof unsubStats === 'function') unsubStats();
+        if (typeof unsubGoals === 'function') unsubGoals();
+        if (typeof unsubWorkouts === 'function') unsubWorkouts();
+      };
+    })();
+
+    return () => {
+      didCancel = true;
+      off(statsRef);
+      off(goalsRef);
+      off(workoutsRef);
+    };
+  }, [user?.uid]);
 
   if (loading) {
     return (
@@ -158,7 +180,7 @@ const Dashboard = () => {
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
       >
         {stats.map((stat, index) => {
-          const Icon = stat.icon;
+          const Icon = ICON_MAP[stat.icon] || Flame;
           return (
             <Card key={index} className="p-6">
               <div className="flex items-center justify-between mb-4">

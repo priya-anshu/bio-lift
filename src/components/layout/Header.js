@@ -26,6 +26,8 @@ const Header = ({ onMenuClick }) => {
     { name: 'Workout', href: '/workout' },
     { name: 'Ranking', href: '/ranking' },
     { name: 'Diet', href: '/diet' },
+    { name: 'Social', href: '/social' },
+    { name: 'Shop', href: '/shop' },
     { name: 'Profile', href: '/profile' }
   ];
 

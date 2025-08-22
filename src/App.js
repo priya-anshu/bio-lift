@@ -15,6 +15,8 @@ import Workout from './pages/Workout';
 import Ranking from './pages/Ranking';
 import Diet from './pages/Diet';
 import Profile from './pages/Profile';
+import Social from './pages/Social';
+import Shop from './pages/Shop';
 
 // Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -54,7 +56,10 @@ const App = () => {
                   <Route path="workout" element={<Workout />} />
                   <Route path="ranking" element={<Ranking />} />
                   <Route path="diet" element={<Diet />} />
+                  
                   <Route path="profile" element={<Profile />} />
+                  <Route path="social" element={<Social />} />
+                  <Route path="shop" element={<Shop />} />
                 </Route>
 
                 {/* Fallback: any unknown route → login */}
