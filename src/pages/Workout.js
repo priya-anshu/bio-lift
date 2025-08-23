@@ -18,6 +18,8 @@ import {
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import ExerciseImage from '../components/ExerciseImage';
+import { getExerciseData } from '../utils/exerciseUtils';
 
 const Workout = () => {
   const [currentExercise, setCurrentExercise] = useState(0);
@@ -34,6 +36,7 @@ const Workout = () => {
   const [avgHeartRate, setAvgHeartRate] = useState(0);
   const [peakHeartRate, setPeakHeartRate] = useState(0);
   const [samplesCount, setSamplesCount] = useState(0);
+  const [currentExerciseData, setCurrentExerciseData] = useState(null);
 
   const workoutPlan = {
     name: "Upper Body Strength",
@@ -140,6 +143,18 @@ const Workout = () => {
     }
   };
 
+  // Load exercise data when current exercise changes
+  useEffect(() => {
+    const currentExerciseName = workoutPlan.exercises[currentExercise].name;
+    
+    // Load exercise data
+    const loadExerciseData = async () => {
+      const data = await getExerciseData(currentExerciseName);
+      setCurrentExerciseData(data);
+    };
+    loadExerciseData();
+  }, [currentExercise]);
+
   // Simulate heart rate while tracking is enabled
   useEffect(() => {
     if (!isHeartTracking) return;
@@ -190,18 +205,16 @@ const Workout = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Workout Area */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Video Player */}
+          {/* Exercise Image Display */}
           <Card className="p-6">
-            <div className="aspect-video bg-gradient-to-br from-day-accent-primary/10 to-day-accent-secondary/10 dark:from-night-accent/10 dark:to-red-600/10 rounded-lg flex items-center justify-center mb-4">
-              <div className="text-center">
-                <Dumbbell className="w-16 h-16 text-day-accent-primary dark:text-night-accent mx-auto mb-4" />
-                <p className="text-day-text-secondary dark:text-night-text-secondary">
-                  AI Exercise Demo
-                </p>
-                <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
-                  {workoutPlan.exercises[currentExercise].name}
-                </p>
-              </div>
+            <div className="aspect-video rounded-lg mb-4 overflow-hidden">
+              <ExerciseImage 
+                exerciseName={workoutPlan.exercises[currentExercise].name}
+                className="w-full h-full rounded-lg"
+                showFallback={true}
+                animate={true}
+                animationSpeed={2000}
+              />
             </div>
             
             <div className="flex items-center justify-between">
@@ -214,8 +227,43 @@ const Workout = () => {
             </div>
             
             <p className="text-day-text-secondary dark:text-night-text-secondary mt-2">
-              {workoutPlan.exercises[currentExercise].description}
+              {currentExerciseData?.instructions?.[0] || workoutPlan.exercises[currentExercise].description}
             </p>
+            
+            {/* Exercise Details */}
+            {currentExerciseData && (
+              <div className="mt-4 p-4 bg-day-hover dark:bg-night-hover rounded-lg">
+                <h4 className="font-semibold text-day-text-primary dark:text-night-text-primary mb-2">
+                  Exercise Details
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-day-text-secondary dark:text-night-text-secondary">Level: </span>
+                    <span className="text-day-text-primary dark:text-night-text-primary capitalize">
+                      {currentExerciseData.level}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-day-text-secondary dark:text-night-text-secondary">Equipment: </span>
+                    <span className="text-day-text-primary dark:text-night-text-primary capitalize">
+                      {currentExerciseData.equipment}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-day-text-secondary dark:text-night-text-secondary">Category: </span>
+                    <span className="text-day-text-primary dark:text-night-text-primary capitalize">
+                      {currentExerciseData.category}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-day-text-secondary dark:text-night-text-secondary">Primary Muscles: </span>
+                    <span className="text-day-text-primary dark:text-night-text-primary">
+                      {currentExerciseData.primaryMuscles?.join(', ')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           {/* Exercise Controls */}
@@ -360,13 +408,23 @@ const Workout = () => {
                   onClick={() => setCurrentExercise(index)}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-day-text-primary dark:text-night-text-primary">
-                        {exercise.name}
-                      </h4>
-                      <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
-                        {computeSets(exercise.sets)} sets × {computeReps(exercise.reps)}
-                      </p>
+                    <div className="flex items-center space-x-3 flex-1">
+                                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-day-border dark:bg-night-border flex-shrink-0">
+                         <ExerciseImage 
+                           exerciseName={exercise.name}
+                           className="w-full h-full"
+                           showFallback={true}
+                           isStatic={true}
+                         />
+                       </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-day-text-primary dark:text-night-text-primary truncate">
+                          {exercise.name}
+                        </h4>
+                        <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
+                          {computeSets(exercise.sets)} sets × {computeReps(exercise.reps)}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       {index < currentExercise && (
