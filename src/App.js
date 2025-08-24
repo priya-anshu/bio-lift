@@ -17,6 +17,11 @@ import Diet from './pages/Diet';
 import Profile from './pages/Profile';
 import Social from './pages/Social';
 import Shop from './pages/Shop';
+import CreatePlan from './pages/CreatePlan';
+import Goals from './pages/Goals';
+import Workouts from './pages/Workouts';
+import Progress from './pages/Progress';
+import WorkoutSelection from './pages/WorkoutSelection';
 
 // Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -25,8 +30,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
+  console.log('PrivateRoute - user:', user, 'loading:', loading); // Debug log
+
   if (loading) return <div>Loading...</div>; // Show loader while checking auth
-  if (!user) return <Navigate to="/login" replace />; // Redirect if not logged in
+  if (!user) {
+    console.log('No user found, redirecting to login'); // Debug log
+    return <Navigate to="/login" replace />; // Redirect if not logged in
+  }
 
   return children;
 };
@@ -56,6 +66,11 @@ const App = () => {
                   <Route path="workout" element={<Workout />} />
                   <Route path="ranking" element={<Ranking />} />
                   <Route path="diet" element={<Diet />} />
+                  <Route path="create-plan" element={<CreatePlan />} />
+                  <Route path="goals" element={<Goals />} />
+                  <Route path="workouts" element={<Workouts />} />
+                  <Route path="progress" element={<Progress />} />
+                  <Route path="workout-selection" element={<WorkoutSelection />} />
                   
                   <Route path="profile" element={<Profile />} />
                   <Route path="social" element={<Social />} />

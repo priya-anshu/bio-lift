@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Play, 
   Pause, 
@@ -20,8 +21,11 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import ExerciseImage from '../components/ExerciseImage';
 import { getExerciseData } from '../utils/exerciseUtils';
+import { WorkoutSession } from '../utils/workoutUtils';
 
 const Workout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentExercise, setCurrentExercise] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(45);
@@ -37,8 +41,8 @@ const Workout = () => {
   const [peakHeartRate, setPeakHeartRate] = useState(0);
   const [samplesCount, setSamplesCount] = useState(0);
   const [currentExerciseData, setCurrentExerciseData] = useState(null);
-
-  const workoutPlan = {
+  const [workoutSession, setWorkoutSession] = useState(null);
+  const [workoutPlan, setWorkoutPlan] = useState({
     name: "Upper Body Strength",
     duration: "45 min",
     difficulty: "Intermediate",
@@ -81,7 +85,7 @@ const Workout = () => {
         description: "Dumbbell bicep curls for arm strength"
       }
     ]
-  };
+  });
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -98,6 +102,23 @@ const Workout = () => {
       setCurrentExercise(currentExercise - 1);
     }
   };
+
+  // Check if workout template was passed from selection page
+  useEffect(() => {
+    const workoutTemplate = location.state?.workoutTemplate;
+    if (!workoutTemplate) {
+      // Redirect to workout selection if no template provided
+      navigate('/workout-selection');
+      return;
+    }
+
+    // Initialize workout session
+    const session = new WorkoutSession(workoutTemplate);
+    setWorkoutSession(session);
+    
+    // Update workout plan with the selected template
+    setWorkoutPlan(workoutTemplate);
+  }, [location.state, navigate]);
 
   const handleReset = () => {
     setCurrentExercise(0);
@@ -182,24 +203,35 @@ const Workout = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
       >
-        <h1 className="text-3xl font-bold text-day-text-primary dark:text-night-text-primary mb-2">
-          {workoutPlan.name}
-        </h1>
-        <div className="flex items-center space-x-4 text-day-text-secondary dark:text-night-text-secondary">
-          <div className="flex items-center space-x-1">
-            <Clock className="w-4 h-4" />
-            <span>{workoutPlan.duration}</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Target className="w-4 h-4" />
-            <span>{workoutPlan.difficulty}</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Zap className="w-4 h-4" />
-            <span>{workoutPlan.calories} cal</span>
+        <div>
+          <h1 className="text-3xl font-bold text-day-text-primary dark:text-night-text-primary mb-2">
+            {workoutPlan.name}
+          </h1>
+          <div className="flex items-center space-x-4 text-day-text-secondary dark:text-night-text-secondary">
+            <div className="flex items-center space-x-1">
+              <Clock className="w-4 h-4" />
+              <span>{workoutPlan.duration}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Target className="w-4 h-4" />
+              <span>{workoutPlan.difficulty}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Zap className="w-4 h-4" />
+              <span>{workoutPlan.calories} cal</span>
+            </div>
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/workout-selection')}
+          className="p-2"
+        >
+          <X className="w-5 h-5" />
+        </Button>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

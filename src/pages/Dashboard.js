@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   Target, 
@@ -26,6 +27,7 @@ import { ref, get, set, onValue, off } from 'firebase/database';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState([]);
   const [recentWorkouts, setRecentWorkouts] = useState([]);
@@ -226,7 +228,12 @@ const Dashboard = () => {
           <p className="text-white/80 mb-4">
             Begin your next training session with AI-powered guidance
           </p>
-          <Button variant="outline" size="sm" className="border-white text-white hover:bg-white hover:text-day-accent-primary">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-white text-white hover:bg-white hover:text-day-accent-primary"
+            onClick={() => navigate('/workout-selection')}
+          >
             Start Now
           </Button>
         </Card>
@@ -247,7 +254,11 @@ const Dashboard = () => {
           <p className="text-day-text-secondary dark:text-night-text-secondary mb-4">
             Generate a personalized workout plan based on your goals
           </p>
-          <Button variant="secondary" size="sm">
+          <Button 
+            variant="secondary" 
+            size="sm"
+            onClick={() => navigate('/create-plan')}
+          >
             Create Plan
           </Button>
         </Card>
@@ -268,7 +279,11 @@ const Dashboard = () => {
           <p className="text-day-text-secondary dark:text-night-text-secondary mb-4">
             Track your fitness journey with detailed analytics
           </p>
-          <Button variant="primary" size="sm">
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={() => navigate('/progress')}
+          >
             View Progress
           </Button>
         </Card>
@@ -288,7 +303,11 @@ const Dashboard = () => {
               <h2 className="text-xl font-bold text-day-text-primary dark:text-night-text-primary">
                 Your Goals
               </h2>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/goals')}
+              >
                 View All
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
@@ -325,7 +344,11 @@ const Dashboard = () => {
               <h2 className="text-xl font-bold text-day-text-primary dark:text-night-text-primary">
                 Recent Workouts
               </h2>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/workouts')}
+              >
                 View All
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>

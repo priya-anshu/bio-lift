@@ -51,8 +51,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('Auth state changed:', firebaseUser ? 'User logged in' : 'No user'); // Debug log
+      
       if (firebaseUser) {
         const normalizedUser = mapFirebaseUser(firebaseUser);
+        console.log('Setting user:', normalizedUser); // Debug log
         setUser(normalizedUser);
         try {
           localStorage.setItem('biolift-user', JSON.stringify(normalizedUser));
@@ -78,19 +81,23 @@ export const AuthProvider = ({ children }) => {
           console.error('Failed to bootstrap user profile:', e);
         }
       } else {
+        console.log('No Firebase user, checking localStorage'); // Debug log
         try {
           const saved = localStorage.getItem('biolift-user');
           if (saved) {
             const parsed = JSON.parse(saved);
+            console.log('Found saved user:', parsed); // Debug log
             if (parsed && parsed.__sessionType === 'local') {
               setUser(parsed);
             } else {
               setUser(null);
             }
           } else {
+            console.log('No saved user in localStorage'); // Debug log
             setUser(null);
           }
         } catch {
+          console.log('Error reading localStorage'); // Debug log
           setUser(null);
         }
       }

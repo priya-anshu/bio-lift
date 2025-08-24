@@ -14,10 +14,16 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import CalorieCalculator from '../components/CalorieCalculator';
+import MealSuggestions from '../components/MealSuggestions';
+import MealPrepGuide from '../components/MealPrepGuide';
 
 const Diet = () => {
   const [budget, setBudget] = useState(50);
   const [selectedMeals, setSelectedMeals] = useState([]);
+  const [showCalorieCalculator, setShowCalorieCalculator] = useState(false);
+  const [showMealSuggestions, setShowMealSuggestions] = useState(false);
+  const [showMealPrepGuide, setShowMealPrepGuide] = useState(false);
 
   const mealPlans = [
     {
@@ -336,15 +342,27 @@ const Diet = () => {
           </Card.Header>
           <Card.Body>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button variant="ghost" className="h-20 flex-col">
+              <Button 
+                variant="ghost" 
+                className="h-20 flex-col"
+                onClick={() => setShowCalorieCalculator(true)}
+              >
                 <Calculator className="w-6 h-6 mb-2" />
                 <span>Calorie Calculator</span>
               </Button>
-              <Button variant="ghost" className="h-20 flex-col">
+              <Button 
+                variant="ghost" 
+                className="h-20 flex-col"
+                onClick={() => setShowMealSuggestions(true)}
+              >
                 <Apple className="w-6 h-6 mb-2" />
                 <span>Meal Suggestions</span>
               </Button>
-              <Button variant="ghost" className="h-20 flex-col">
+              <Button 
+                variant="ghost" 
+                className="h-20 flex-col"
+                onClick={() => setShowMealPrepGuide(true)}
+              >
                 <Clock className="w-6 h-6 mb-2" />
                 <span>Meal Prep Guide</span>
               </Button>
@@ -352,6 +370,20 @@ const Diet = () => {
           </Card.Body>
         </Card>
       </motion.div>
+
+      {/* Modal Components */}
+      <CalorieCalculator 
+        isOpen={showCalorieCalculator} 
+        onClose={() => setShowCalorieCalculator(false)} 
+      />
+      <MealSuggestions 
+        isOpen={showMealSuggestions} 
+        onClose={() => setShowMealSuggestions(false)} 
+      />
+      <MealPrepGuide 
+        isOpen={showMealPrepGuide} 
+        onClose={() => setShowMealPrepGuide(false)} 
+      />
     </div>
   );
 };
