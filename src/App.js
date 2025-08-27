@@ -22,6 +22,7 @@ import Goals from './pages/Goals';
 import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import WorkoutSelection from './pages/WorkoutSelection';
+import AdminDashboard from './components/AdminDashboard';
 
 // Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -75,6 +76,7 @@ const App = () => {
                   <Route path="profile" element={<Profile />} />
                   <Route path="social" element={<Social />} />
                   <Route path="shop" element={<Shop />} />
+                  <Route path="admin" element={<AdminDashboard />} />
                 </Route>
 
                 {/* Fallback: any unknown route → login */}

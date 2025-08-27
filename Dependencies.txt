@@ -8,4 +8,9 @@ npx tailwindcss init -p
 
 npm install react-router-dom
 npm install lucide-react
+npm install @heroicons/react framer-motion
 
+npm install -g firebase-tools
+firebase login
+firebase init firestore
+firebase init functions

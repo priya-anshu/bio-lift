@@ -1,0 +1,259 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== SMART RANKING SYSTEM SECURITY RULES =====
+    
+    // Allow authenticated users to read their own data
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return request.auth.uid in ['admin_user_id_1', 'admin_user_id_2']; // Replace with actual admin UIDs
+    }
+    
+    // User profiles - users can read/write their own profile
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated(); // Allow reading other user profiles for leaderboard
+    }
+    
+    // User metrics - users can read/write their own metrics
+    match /userMetrics/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated(); // Allow reading for ranking calculations
+    }
+    
+    // User scores - users can read their own scores, system can write
+    match /userScores/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow read: if isAuthenticated(); // Allow reading for leaderboard
+      allow write: if false; // Only Cloud Functions can write scores
+    }
+    
+    // Score breakdowns - users can read their own breakdowns
+    match /scoreBreakdowns/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Historical metrics - users can read their own history
+    match /userMetricsHistory/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if false; // Only Cloud Functions can write
+      
+      // Allow access to snapshots subcollection
+      match /snapshots/{snapshotId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false; // Only Cloud Functions can write
+      }
+    }
+    
+    // Rankings - public read access for leaderboards
+    match /rankings/{rankingType} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only Cloud Functions can write rankings
+    }
+    
+    // Statistics - public read access
+    match /statistics/{statId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // System configuration - admin only
+    match /systemConfig/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Admin operations log - admin read, system write
+    match /adminLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write logs
+    }
+    
+    // User insights - users can read their own insights
+    match /userInsights/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Workout data - users can read/write their own workouts
+    match /workouts/{workoutId} {
+      allow read, write: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Exercise data - public read access
+    match /exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // User goals - users can read/write their own goals
+    match /userGoals/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Progress tracking - users can read/write their own progress
+    match /userProgress/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+      
+      // Allow access to progress entries subcollection
+      match /entries/{entryId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+    }
+    
+    // Social features - users can read public data, write their own
+    match /social/{socialId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Notifications - users can read their own notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow write: if false; // Only system can write notifications
+    }
+    
+    // Analytics data - admin only
+    match /analytics/{analyticsId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Backup data - admin only
+    match /backups/{backupId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // API keys and secrets - admin only
+    match /secrets/{secretId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Rate limiting data - system only
+    match /rateLimits/{limitId} {
+      allow read, write: if false; // Only Cloud Functions can access
+    }
+    
+    // Cache data - public read, system write
+    match /cache/{cacheId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Audit logs - admin read, system write
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Feature flags - public read, admin write
+    match /featureFlags/{flagId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // User preferences - users can read/write their own preferences
+    match /userPreferences/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Subscription data - users can read their own subscriptions
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow write: if false; // Only payment system can write
+    }
+    
+    // Payment data - users can read their own payments
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow write: if false; // Only payment system can write
+    }
+    
+    // Support tickets - users can read/write their own tickets
+    match /supportTickets/{ticketId} {
+      allow read, write: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow read, write: if isAdmin(); // Admins can access all tickets
+    }
+    
+    // Content moderation - admin only
+    match /moderation/{moderationId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // A/B testing data - admin read, system write
+    match /abTesting/{testId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Performance metrics - admin read, system write
+    match /performance/{metricId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Error logs - admin read, system write
+    match /errorLogs/{errorId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Data validation rules
+    function validateUserData(data) {
+      return data.keys().hasAll(['displayName', 'email', 'createdAt']) &&
+             data.displayName is string &&
+             data.displayName.size() > 0 &&
+             data.displayName.size() <= 100 &&
+             data.email is string &&
+             data.email.matches('^[^@]+@[^@]+\\.[^@]+$') &&
+             data.createdAt is timestamp;
+    }
+    
+    function validateMetricsData(data) {
+      return data.keys().hasAll(['userId', 'timestamp']) &&
+             data.userId is string &&
+             data.timestamp is timestamp &&
+             (data.maxWeightLifted == null || data.maxWeightLifted is number) &&
+             (data.workoutDuration == null || data.workoutDuration is number) &&
+             (data.workoutStreak == null || data.workoutStreak is number);
+    }
+    
+    // Apply validation rules
+    match /users/{userId} {
+      allow create: if isAuthenticated() && isOwner(userId) && validateUserData(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(userId) && validateUserData(request.resource.data);
+    }
+    
+    match /userMetrics/{userId} {
+      allow create: if isAuthenticated() && isOwner(userId) && validateMetricsData(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(userId) && validateMetricsData(request.resource.data);
+    }
+    
+    // Rate limiting helper functions
+    function isRateLimited() {
+      return get(/databases/$(database)/documents/rateLimits/$(request.auth.uid)).data.count > 100;
+    }
+    
+    // Apply rate limiting to write operations
+    match /{document=**} {
+      allow write: if isAuthenticated() && !isRateLimited();
+    }
+  }
+}
