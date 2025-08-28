@@ -20,9 +20,16 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
+// Import settings sub-modules
+import PrivacySecurity from '../components/settings/PrivacySecurity';
+import Notifications from '../components/settings/Notifications';
+import BillingPayment from '../components/settings/BillingPayment';
+import LanguageRegion from '../components/settings/LanguageRegion';
+
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [activeSettings, setActiveSettings] = useState(null);
   const [editData, setEditData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -364,19 +371,35 @@ const Profile = () => {
           </Card.Header>
           <Card.Body>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button variant="ghost" className="justify-start h-12">
+              <Button 
+                variant="ghost" 
+                className="justify-start h-12"
+                onClick={() => setActiveSettings('privacy')}
+              >
                 <Shield className="w-5 h-5 mr-3" />
                 Privacy & Security
               </Button>
-              <Button variant="ghost" className="justify-start h-12">
+              <Button 
+                variant="ghost" 
+                className="justify-start h-12"
+                onClick={() => setActiveSettings('notifications')}
+              >
                 <Bell className="w-5 h-5 mr-3" />
                 Notifications
               </Button>
-              <Button variant="ghost" className="justify-start h-12">
+              <Button 
+                variant="ghost" 
+                className="justify-start h-12"
+                onClick={() => setActiveSettings('billing')}
+              >
                 <CreditCard className="w-5 h-5 mr-3" />
                 Billing & Payment
               </Button>
-              <Button variant="ghost" className="justify-start h-12">
+              <Button 
+                variant="ghost" 
+                className="justify-start h-12"
+                onClick={() => setActiveSettings('language')}
+              >
                 <Globe className="w-5 h-5 mr-3" />
                 Language & Region
               </Button>
@@ -384,6 +407,47 @@ const Profile = () => {
           </Card.Body>
         </Card>
       </motion.div>
+
+      {/* Settings Sub-Modules */}
+      {activeSettings && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setActiveSettings(null)}
+        >
+          <div 
+            className="bg-white dark:bg-black rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.1)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white dark:bg-black border-b border-day-border dark:border-night-border p-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-day-text-primary dark:text-night-text-primary">
+                {activeSettings === 'privacy' && 'Privacy & Security'}
+                {activeSettings === 'notifications' && 'Notifications'}
+                {activeSettings === 'billing' && 'Billing & Payment'}
+                {activeSettings === 'language' && 'Language & Region'}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveSettings(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="p-4">
+              {activeSettings === 'privacy' && <PrivacySecurity />}
+              {activeSettings === 'notifications' && <Notifications />}
+              {activeSettings === 'billing' && <BillingPayment />}
+              {activeSettings === 'language' && <LanguageRegion />}
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

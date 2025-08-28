@@ -34,22 +34,11 @@ const Leaderboard = () => {
       setLoading(true);
       setError(null);
       
-      const offset = (page - 1) * itemsPerPage;
-      const response = await fetch(
-        `https://us-central1-biolift-c37b6.cloudfunctions.net/getLeaderboard?type=${type}&limit=${itemsPerPage}&offset=${offset}`
-      );
+      // Use the real-time ranking system
+      const { getCurrentLeaderboard } = await import('../utils/realTimeRanking');
+      const rankings = await getCurrentLeaderboard(type);
+      setLeaderboardData(rankings);
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch leaderboard data');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setLeaderboardData(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to fetch leaderboard data');
-      }
     } catch (err) {
       setError(err.message);
       console.error('Error fetching leaderboard:', err);
@@ -58,9 +47,29 @@ const Leaderboard = () => {
     }
   };
 
-  // Initial data fetch
+  // Initial data fetch and real-time subscription
   useEffect(() => {
     fetchLeaderboard(leaderboardType, currentPage);
+    
+    // Subscribe to real-time updates
+    const setupRealTimeSubscription = async () => {
+      const { subscribeToLeaderboard } = await import('../utils/realTimeRanking');
+      const unsubscribe = subscribeToLeaderboard(leaderboardType, (rankings) => {
+        setLeaderboardData(rankings);
+        setLoading(false);
+      });
+      
+      return unsubscribe;
+    };
+    
+    let unsubscribe;
+    setupRealTimeSubscription().then(unsub => {
+      unsubscribe = unsub;
+    });
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [leaderboardType, currentPage]);
 
   // Handle leaderboard type change
