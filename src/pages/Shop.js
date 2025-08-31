@@ -19,36 +19,111 @@ import Input from '../components/ui/Input';
 import Badge from '../components/ui/Badge';
 
 const CATEGORIES = ['All', 'Supplements', 'Accessories', 'Apparel', 'Equipment'];
-
 const sampleProducts = [
-  { id: 's1', name: 'Whey Protein Isolate', price: 39.99, stock: 23, rating: 4.6, category: 'Supplements', brand: 'BioLift', images: [''], desc: 'High quality isolate with fast absorption.' },
-  { id: 's2', name: 'Resistance Bands Set', price: 19.99, stock: 48, rating: 4.4, category: 'Accessories', brand: 'FlexFit', images: [''], desc: 'Multi-resistance bands for full-body workouts.' },
-  { id: 's3', name: 'Dry-Fit Tee', price: 24.99, stock: 120, rating: 4.2, category: 'Apparel', brand: 'BioLift', images: [''], desc: 'Breathable, moisture-wicking training tee.' },
-  { id: 's4', name: 'Adjustable Dumbbells', price: 249.99, stock: 8, rating: 4.8, category: 'Equipment', brand: 'IronPro', images: [''], desc: 'Space-saving adjustable dumbbells (5-52.5 lb).' }
+  { 
+    id: 's1', 
+    name: 'Whey Protein Isolate', 
+    price: 39.99, 
+    stock: 23, 
+    rating: 4.6, 
+    category: 'Supplements', 
+    brand: 'BioLift', 
+    images: ['https://m.media-amazon.com/images/I/61IqOJ0JJQL._AC_SL1500_.jpg'], 
+    desc: 'High quality isolate with fast absorption.' 
+  },
+  { 
+    id: 's2', 
+    name: 'Resistance Bands Set', 
+    price: 19.99, 
+    stock: 48, 
+    rating: 4.4, 
+    category: 'Accessories', 
+    brand: 'FlexFit', 
+    images: ['https://th.bing.com/th?id=OPAC.ZigxuglFgq7%2fMg474C474&w=220&h=220&c=17&o=5&pid=21.1'], 
+    desc: 'Multi-resistance bands for full-body workouts.' 
+  },
+  { 
+    id: 's3', 
+    name: 'Dry-Fit Tee', 
+    price: 24.99, 
+    stock: 120, 
+    rating: 4.2, 
+    category: 'Apparel', 
+    brand: 'BioLift', 
+    images: ['https://5.imimg.com/data5/SELLER/Default/2022/10/MN/ML/BD/7313559/mens-sports-dry-fit-t-shirts-1000x1000.png'], 
+    desc: 'Breathable, moisture-wicking training tee.' 
+  },
+  { 
+    id: 's4', 
+    name: 'Adjustable Dumbbells', 
+    price: 249.99, 
+    stock: 8, 
+    rating: 4.8, 
+    category: 'Equipment', 
+    brand: 'IronPro', 
+    images: ['https://m.media-amazon.com/images/I/81-5vsFdaJL._AC_SL1500_.jpg'], 
+    desc: 'Space-saving adjustable dumbbells (5-52.5 lb).' 
+  }
 ];
 
 const ProductCard = ({ product, onAdd }) => (
   <Card className="p-4">
-    <div className="aspect-square rounded-lg bg-day-border dark:bg-night-border mb-3" />
+    {/* Product Image */}
+    <div className="aspect-square rounded-lg overflow-hidden bg-day-border dark:bg-night-border mb-3 flex items-center justify-center">
+      {product.images && product.images.length > 0 ? (
+        <img
+          src={product.images[0]}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="text-xs text-day-text-secondary dark:text-night-text-secondary">
+          No Image
+        </span>
+      )}
+    </div>
+
+    {/* Product Name + Brand */}
     <div className="flex items-start justify-between mb-1">
-      <h3 className="font-semibold text-day-text-primary dark:text-night-text-primary line-clamp-1">{product.name}</h3>
+      <h3 className="font-semibold text-day-text-primary dark:text-night-text-primary line-clamp-1">
+        {product.name}
+      </h3>
       <Badge variant="ghost" size="sm">{product.brand}</Badge>
     </div>
+
+    {/* Rating */}
     <div className="flex items-center gap-1 text-yellow-500 mb-2">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={`w-4 h-4 ${i < Math.round(product.rating) ? '' : 'opacity-30'}`} />
+        <Star
+          key={i}
+          className={`w-4 h-4 ${
+            i < Math.round(product.rating) ? "fill-yellow-500" : "opacity-30"
+          }`}
+        />
       ))}
-      <span className="ml-1 text-xs text-day-text-secondary dark:text-night-text-secondary">{product.rating}</span>
+      <span className="ml-1 text-xs text-day-text-secondary dark:text-night-text-secondary">
+        {product.rating}
+      </span>
     </div>
+
+    {/* Price + Add to Cart */}
     <div className="flex items-center justify-between">
-      <div className="text-lg font-bold text-day-text-primary dark:text-night-text-primary">${product.price.toFixed(2)}</div>
+      <div className="text-lg font-bold text-day-text-primary dark:text-night-text-primary">
+        ${product.price.toFixed(2)}
+      </div>
       <Button size="sm" onClick={() => onAdd(product)}>
         Add to Cart
       </Button>
     </div>
-    <div className="text-xs text-day-text-secondary dark:text-night-text-secondary mt-1">{product.stock} in stock</div>
+
+    {/* Stock */}
+    <div className="text-xs text-day-text-secondary dark:text-night-text-secondary mt-1">
+      {product.stock} in stock
+    </div>
   </Card>
 );
+
+
 
 const FiltersBar = ({ q, setQ, category, setCategory, sort, setSort, price, setPrice }) => (
   <Card className="p-4">

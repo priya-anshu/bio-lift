@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-
 // Layout Components
 import Layout from './components/layout/Layout';
 
@@ -23,6 +22,7 @@ import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
 import WorkoutSelection from './pages/WorkoutSelection';
 import AdminDashboard from './components/AdminDashboard';
+import Checkout from './pages/Checkout';
 
 // Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -77,6 +77,8 @@ const App = () => {
                   <Route path="social" element={<Social />} />
                   <Route path="shop" element={<Shop />} />
                   <Route path="admin" element={<AdminDashboard />} />
+                  <Route path="checkout" element={<Checkout />} />
+
                 </Route>
 
                 {/* Fallback: any unknown route → login */}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Image as ImageIcon,
@@ -47,7 +47,7 @@ const PostComposer = ({ onCreate }) => {
       likes: 0,
       comments: [],
       reactions: {},
-      pinned: false
+      pinned: false,
     });
     setText('');
     setMedia(null);
@@ -57,7 +57,7 @@ const PostComposer = ({ onCreate }) => {
   return (
     <Card className="p-4">
       <div className="flex items-start space-x-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br ${accentClasses} text-white flex items-center justify-center font-bold">Y</div>
+        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${accentClasses} text-white flex items-center justify-center font-bold`}>Y</div>
         <div className="flex-1 space-y-3">
           <Input
             placeholder="Share an update with your gym... @mention, #tags"
@@ -66,17 +66,35 @@ const PostComposer = ({ onCreate }) => {
           />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-day-text-secondary dark:text-night-text-secondary">
-              <button className="px-3 py-2 hover:bg-day-hover dark:hover:bg-night-hover rounded-lg" onClick={() => setType('image')}>
+              <button
+                className="px-3 py-2 hover:bg-day-hover dark:hover:bg-night-hover rounded-lg"
+                onClick={() => {
+                  setType('image');
+                  setMedia('mock-image');
+                }}
+              >
                 <ImageIcon className="w-5 h-5" />
               </button>
-              <button className="px-3 py-2 hover:bg-day-hover dark:hover:bg-night-hover rounded-lg" onClick={() => setType('video')}>
+              <button
+                className="px-3 py-2 hover:bg-day-hover dark:hover:bg-night-hover rounded-lg"
+                onClick={() => {
+                  setType('video');
+                  setMedia('mock-video');
+                }}
+              >
                 <VideoIcon className="w-5 h-5" />
               </button>
               <button className="px-3 py-2 hover:bg-day-hover dark:hover:bg-night-hover rounded-lg">
                 <Smile className="w-5 h-5" />
               </button>
             </div>
-            <Button variant="primary" size="sm" onClick={handleCreate} icon={<Send className="w-4 h-4" />} iconPosition="right">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCreate}
+              icon={<Send className="w-4 h-4" />}
+              iconPosition="right"
+            >
               Post
             </Button>
           </div>
@@ -101,71 +119,139 @@ const CommentList = ({ comments, onAdd }) => {
         </div>
       ))}
       <div className="flex items-center space-x-2">
-        <Input size="sm" placeholder="Write a comment..." value={text} onChange={(e) => setText(e.target.value)} />
-        <Button size="sm" variant="ghost" onClick={() => { if (!text.trim()) return; onAdd(text); setText(''); }}>Reply</Button>
+        <Input
+          size="sm"
+          placeholder="Write a comment..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            if (!text.trim()) return;
+            onAdd(text);
+            setText('');
+          }}
+        >
+          Reply
+        </Button>
       </div>
     </div>
   );
 };
 
 // Post Card
-const PostCard = ({ post, onLike, onComment, onShare, onReact }) => {
-  const [showMore, setShowMore] = useState(false);
+const PostCard = ({ post, onLike, onComment, onShare, onReact, onDelete, onTogglePin }) => {
+  const [showMenu, setShowMenu] = useState(false);
+
   return (
-    <Card className="p-4">
+    <Card className="p-4 relative">
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br ${accentClasses} text-white flex items-center justify-center font-bold">
+          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${accentClasses} text-white flex items-center justify-center font-bold`}>
             {post.author?.[0] || 'U'}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-day-text-primary dark:text-night-text-primary">{post.author}</span>
               <Badge variant="ghost" size="sm">{post.role}</Badge>
+              {post.pinned && <span className="text-xs text-yellow-500">📌 Pinned</span>}
             </div>
-            <div className="text-xs text-day-text-secondary dark:text-night-text-secondary">{new Date(post.createdAt).toLocaleString()}</div>
+            <div className="text-xs text-day-text-secondary dark:text-night-text-secondary">
+              {new Date(post.createdAt).toLocaleString()}
+            </div>
           </div>
         </div>
-        <button className="p-1 text-day-text-secondary dark:text-night-text-secondary hover:text-day-text-primary dark:hover:text-night-text-primary">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button
+            className="p-1 text-day-text-secondary dark:text-night-text-secondary hover:text-day-text-primary dark:hover:text-night-text-primary"
+            onClick={() => setShowMenu((m) => !m)}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 mt-2 bg-white dark:bg-night-surface shadow-lg rounded-lg z-10 w-32">
+              <button
+                className="block w-full px-3 py-2 text-sm hover:bg-day-hover dark:hover:bg-night-hover text-left"
+                onClick={() => {
+                  onTogglePin();
+                  setShowMenu(false);
+                }}
+              >
+                {post.pinned ? 'Unpin Post' : 'Pin Post'}
+              </button>
+              <button
+                className="block w-full px-3 py-2 text-sm hover:bg-day-hover dark:hover:bg-night-hover text-left"
+                onClick={() => {
+                  onDelete();
+                  setShowMenu(false);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {post.text && (
-        <p className="mt-3 text-day-text-primary dark:text-night-text-primary">
-          {post.text}
-        </p>
+        <p className="mt-3 text-day-text-primary dark:text-night-text-primary">{post.text}</p>
       )}
 
       {post.media && (
-        <div className="mt-3">
-          <div className="aspect-video rounded-lg overflow-hidden bg-black/10 dark:bg-white/5" />
-        </div>
-      )}
+  <div className="mt-3">
+    {post.type === 'image' ? (
+      <img
+        src={post.media}
+        alt="Post media"
+        className="rounded-lg w-full h-auto"
+      />
+
+    ) : (
+      <video
+        controls
+        className="rounded-lg max-h-80 object-cover w-full"
+      >
+        <source src={post.media} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    )}
+  </div>
+)}
 
       <div className="mt-4 flex items-center justify-between text-day-text-secondary dark:text-night-text-secondary">
         <div className="flex items-center gap-4">
-          <button onClick={onLike} className="flex items-center gap-1 hover:text-day-text-primary dark:hover:text-night-text-primary">
+          <button
+            onClick={onLike}
+            className="flex items-center gap-1 hover:text-day-text-primary dark:hover:text-night-text-primary"
+          >
             <Heart className="w-4 h-4" /> {post.likes}
           </button>
           <button className="flex items-center gap-1 hover:text-day-text-primary dark:hover:text-night-text-primary">
             <MessageCircle className="w-4 h-4" /> {post.comments.length}
           </button>
-          <button onClick={onShare} className="flex items-center gap-1 hover:text-day-text-primary dark:hover:text-night-text-primary">
+          <button
+            onClick={onShare}
+            className="flex items-center gap-1 hover:text-day-text-primary dark:hover:text-night-text-primary"
+          >
             <Share2 className="w-4 h-4" /> Share
           </button>
         </div>
         <div className="flex items-center gap-2">
-          {['👍','🔥','👏','💪'].map((emoji) => (
-            <button key={emoji} className="px-2 py-1 hover:bg-day-hover dark:hover:bg-night-hover rounded" onClick={() => onReact(emoji)}>{emoji}</button>
+          {['👍', '🔥', '👏', '💪'].map((emoji) => (
+            <button
+              key={emoji}
+              className="px-2 py-1 hover:bg-day-hover dark:hover:bg-night-hover rounded"
+              onClick={() => onReact(emoji)}
+            >
+              {emoji} {post.reactions[emoji] || 0}
+            </button>
           ))}
         </div>
       </div>
 
-      <CommentList
-        comments={post.comments}
-        onAdd={(text) => onComment(text)}
-      />
+      <CommentList comments={post.comments} onAdd={(text) => onComment(text)} />
 
       <div className="mt-3 flex items-center gap-2 text-xs text-day-text-secondary dark:text-night-text-secondary">
         <Hash className="w-3 h-3" />
@@ -177,7 +263,7 @@ const PostCard = ({ post, onLike, onComment, onShare, onReact }) => {
   );
 };
 
-// Right sidebar widgets
+// Sidebar widgets (unchanged)
 const SpotlightCard = () => (
   <Card className="p-4">
     <div className="flex items-center gap-2 mb-2">
@@ -217,7 +303,9 @@ const PollCard = () => {
           </label>
         ))}
       </div>
-      <Button size="sm" className="mt-3" variant="primary" onClick={() => setVoted(true)}>Vote</Button>
+      <Button size="sm" className="mt-3" variant="primary" onClick={() => setVoted(true)}>
+        Vote
+      </Button>
       {voted && (
         <div className="mt-3 text-xs text-day-text-secondary dark:text-night-text-secondary">Thanks for voting! Results soon.</div>
       )}
@@ -252,22 +340,25 @@ const ModerationTools = () => (
   </Card>
 );
 
+// Main Social component
 const Social = () => {
   const [posts, setPosts] = useState(() => ([
-    {
-      id: 'p1',
-      author: 'Trainer Emma',
-      role: 'Trainer',
-      avatar: '',
-      createdAt: new Date().toISOString(),
-      text: 'Form tip: keep your core tight during squats! @members #mobility',
-      media: null,
-      type: 'text',
-      likes: 24,
-      comments: [ { id: 'c1', author: 'Alex', text: 'Super helpful, thanks!' } ],
-      reactions: { '👍': 3, '🔥': 2 }
-    }
-  ]));
+  {
+    id: 'p1',
+    author: 'Trainer Emma',
+    role: 'Trainer',
+    avatar: '',
+    createdAt: new Date().toISOString(),
+    text: 'Form tip: keep your core tight during squats! @members #mobility',
+    media: 'https://parade.com/.image/t_share/MTk0MjYxNzc2MTM1NjI4NDY1/how-to-do-barbell-squat.jpg',
+    type: 'image',
+    likes: 24,
+    comments: [{ id: 'c1', author: 'Alex', text: 'Super helpful, thanks!' }],
+    reactions: { '👍': 3, '🔥': 2 },
+    pinned: false,
+  }
+]));
+
 
   const handleCreate = (newPost) => {
     setPosts((p) => [newPost, ...p]);
@@ -290,10 +381,47 @@ const Social = () => {
               <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                 <PostCard
                   post={post}
-                  onLike={() => setPosts((ps) => ps.map(p => p.id === post.id ? { ...p, likes: p.likes + 1 } : p))}
-                  onComment={(text) => setPosts((ps) => ps.map(p => p.id === post.id ? { ...p, comments: [...p.comments, { id: crypto.randomUUID(), author: 'You', text }] } : p))}
-                  onShare={() => alert('Shared!')}
-                  onReact={(emoji) => setPosts((ps) => ps.map(p => p.id === post.id ? { ...p, reactions: { ...p.reactions, [emoji]: (p.reactions[emoji] || 0) + 1 } } : p))}
+                  onLike={() =>
+                    setPosts((ps) =>
+                      ps.map((p) =>
+                        p.id === post.id
+                          ? { ...p, likes: p.likes + 1 }
+                          : p
+                      )
+                    )
+                  }
+                  onComment={(text) =>
+                    setPosts((ps) =>
+                      ps.map((p) =>
+                        p.id === post.id
+                          ? { ...p, comments: [...p.comments, { id: crypto.randomUUID(), author: 'You', text }] }
+                          : p
+                      )
+                    )
+                  }
+                  onShare={() => {
+                    navigator.clipboard.writeText(post.text || '');
+                    alert('Post copied to clipboard & ready to share!');
+                  }}
+                  onReact={(emoji) =>
+                    setPosts((ps) =>
+                      ps.map((p) =>
+                        p.id === post.id
+                          ? { ...p, reactions: { ...p.reactions, [emoji]: (p.reactions[emoji] || 0) + 1 } }
+                          : p
+                      )
+                    )
+                  }
+                  onDelete={() =>
+                    setPosts((ps) => ps.filter((p) => p.id !== post.id))
+                  }
+                  onTogglePin={() =>
+                    setPosts((ps) =>
+                      ps.map((p) =>
+                        p.id === post.id ? { ...p, pinned: !p.pinned } : p
+                      )
+                    )
+                  }
                 />
               </motion.div>
             ))}
@@ -314,5 +442,3 @@ const Social = () => {
 };
 
 export default Social;
-
-
