@@ -25,6 +25,7 @@ const Sidebar = ({ onClose }) => {
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Workout', href: '/workout', icon: Dumbbell },
     { name: 'Ranking', href: '/ranking', icon: Trophy },
+    { name: 'Progress', href: '/track-progress', icon: TrendingUp },
     { name: 'Diet', href: '/diet', icon: Apple },
     { name: 'Social', href: '/social', icon: Users },
     { name: 'Shop', href: '/shop', icon: TrendingUp },
