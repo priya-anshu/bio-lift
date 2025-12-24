@@ -481,6 +481,12 @@ const Workout = () => {
                 <Heart className="w-4 h-4 mr-2" />
                 Track Heart Rate
               </Button>
+
+              <Button variant="ghost" fullWidth onClick={() => navigate('/workouts')}>
+                <Dumbbell className="w-4 h-4 mr-2" />
+                Workout History
+              </Button>
+
               <Button variant="ghost" fullWidth onClick={handleReset}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Restart Workout

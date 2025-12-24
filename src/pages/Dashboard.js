@@ -215,12 +215,13 @@ const Dashboard = () => {
         className="grid grid-cols-1 lg:grid-cols-3 gap-6"
       >
         {/* Start Workout */}
-        <Card className="p-6 bg-gradient-to-br from-day-accent-primary to-day-accent-secondary dark:from-night-accent dark:to-red-600 text-white">
+        <Card className="p-6 bg-gradient-to-br from-day-accent-primary to-day-accent-secondary dark:to-night-border dark:from-red-600 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 rounded-lg bg-white/20">
               <Play className="w-5 h-5" />
             </div>
-            <Badge variant="outline" size="sm" className="border-white text-white">
+            <Badge variant="outline" 
+            size="sm" className="border-white dark:border-white text-white  dark:text-night-text-primary">
               Quick Start
             </Badge>
           </div>
@@ -229,9 +230,9 @@ const Dashboard = () => {
             Begin your next training session with AI-powered guidance
           </p>
           <Button 
-            variant="outline" 
+            variant="outline"  
             size="sm" 
-            className="border-white text-white hover:bg-white hover:text-day-accent-primary"
+            className="border-white dark:border-white text-white  hover:text-day-accent-primary  dark:text-night-text-primary"
             onClick={() => navigate('/workout-selection')}
           >
             Start Now

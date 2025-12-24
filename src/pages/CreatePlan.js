@@ -12,7 +12,12 @@ import {
   CheckCircle,
   Plus,
   Save,
-  Play
+  Play,
+  Brain,       // Icon for AI Wizard
+  PenTool,     // Icon for Manual Custom
+  List,        // Icon for Defaults
+  Trash2,      // Icon for deleting rows
+  Repeat       // Icon for Reps
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/ui/Card';
@@ -22,6 +27,15 @@ import Input from '../components/ui/Input';
 
 const CreatePlan = () => {
   const navigate = useNavigate();
+  
+  // --- NEW STATE: MODE SELECTION ---
+  // 'selection' = The new starting screen
+  // 'wizard' = Your ORIGINAL code flow
+  // 'manual' = The new granular builder (reps/sets)
+  // 'defaults' = The pre-set plans
+  const [mode, setMode] = useState('selection'); 
+
+  // --- ORIGINAL STATE (For the Wizard) ---
   const [currentStep, setCurrentStep] = useState(1);
   const [planData, setPlanData] = useState({
     goal: '',
@@ -33,10 +47,20 @@ const CreatePlan = () => {
     equipment: [],
     timeOfDay: ''
   });
-
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // --- NEW STATE (For Manual Builder) ---
+  const [manualPlan, setManualPlan] = useState({
+    name: '',
+    durationValue: 4,
+    durationUnit: 'weeks',
+    exercises: [
+      { id: 1, name: '', sets: 3, reps: 10, rest: 60 }
+    ]
+  });
+
+  // --- CONSTANTS (Original) ---
   const goals = [
     { id: 'weight-loss', label: 'Weight Loss', icon: Target, description: 'Focus on cardio and calorie burning' },
     { id: 'muscle-gain', label: 'Muscle Gain', icon: Dumbbell, description: 'Strength training and hypertrophy' },
@@ -76,6 +100,14 @@ const CreatePlan = () => {
     { id: 'full-gym', label: 'Full Gym Access', description: 'All equipment available' }
   ];
 
+  // --- CONSTANTS (New Default Plans) ---
+  const defaultPlans = [
+    { id: 'd1', name: '30-Day Shred', duration: '4 weeks', level: 'Intermediate', focus: 'Weight Loss' },
+    { id: 'd2', name: 'Beginner Strength', duration: '8 weeks', level: 'Beginner', focus: 'Muscle Gain' },
+    { id: 'd3', name: 'Yoga for Mobility', duration: '2 weeks', level: 'All Levels', focus: 'Flexibility' },
+  ];
+
+  // --- ORIGINAL FUNCTIONS ---
   const handleInputChange = (field, value) => {
     if (field === 'availableDays' || field === 'focusAreas' || field === 'equipment') {
       const currentValues = planData[field];
@@ -100,23 +132,16 @@ const CreatePlan = () => {
 
   const canProceed = () => {
     switch (currentStep) {
-      case 1:
-        return planData.goal && planData.fitnessLevel;
-      case 2:
-        return planData.availableDays.length > 0 && planData.workoutDuration;
-      case 3:
-        return planData.focusAreas.length > 0 && planData.experience;
-      case 4:
-        return planData.equipment.length > 0 && planData.timeOfDay;
-      default:
-        return false;
+      case 1: return planData.goal && planData.fitnessLevel;
+      case 2: return planData.availableDays.length > 0 && planData.workoutDuration;
+      case 3: return planData.focusAreas.length > 0 && planData.experience;
+      case 4: return planData.equipment.length > 0 && planData.timeOfDay;
+      default: return false;
     }
   };
 
   const nextStep = () => {
-    if (canProceed()) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
-    }
+    if (canProceed()) setCurrentStep(prev => Math.min(prev + 1, 4));
   };
 
   const prevStep = () => {
@@ -125,10 +150,7 @@ const CreatePlan = () => {
 
   const generatePlan = async () => {
     setIsGenerating(true);
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
     const plan = {
       id: Date.now(),
       name: `${planData.goal.charAt(0).toUpperCase() + planData.goal.slice(1)} ${planData.fitnessLevel} Plan`,
@@ -143,7 +165,6 @@ const CreatePlan = () => {
       estimatedCalories: calculateEstimatedCalories(),
       createdAt: new Date().toISOString()
     };
-    
     setGeneratedPlan(plan);
     setIsGenerating(false);
   };
@@ -172,13 +193,11 @@ const CreatePlan = () => {
       'core': ['Planks', 'Crunches', 'Russian Twists', 'Mountain Climbers', 'Leg Raises'],
       'cardio': ['Burpees', 'Jumping Jacks', 'High Knees', 'Mountain Climbers', 'Jump Rope']
     };
-
     planData.focusAreas.forEach(area => {
       if (exerciseDatabase[area]) {
         exercises.push(...exerciseDatabase[area].slice(0, 3));
       }
     });
-
     return exercises.slice(0, 8);
   };
 
@@ -187,26 +206,287 @@ const CreatePlan = () => {
     if (planData.workoutDuration === '30') baseCalories = 250;
     if (planData.workoutDuration === '45') baseCalories = 350;
     if (planData.workoutDuration === '60') baseCalories = 450;
-    
     if (planData.focusAreas.includes('cardio')) baseCalories *= 1.2;
     if (planData.fitnessLevel === 'advanced') baseCalories *= 1.1;
-    
     return Math.round(baseCalories);
   };
 
   const savePlan = () => {
-    // Here you would save to Firebase
-    console.log('Saving plan:', generatedPlan);
-    // Navigate back to dashboard
+    console.log('Saving generated plan:', generatedPlan);
     navigate('/dashboard');
   };
 
   const startPlan = () => {
-    // Here you would start the plan
-    console.log('Starting plan:', generatedPlan);
+    console.log('Starting generated plan:', generatedPlan);
     navigate('/workout-selection');
   };
 
+  // --- NEW FUNCTIONS FOR MANUAL BUILDER ---
+  const handleManualExerciseChange = (id, field, value) => {
+    setManualPlan(prev => ({
+      ...prev,
+      exercises: prev.exercises.map(ex => 
+        ex.id === id ? { ...ex, [field]: value } : ex
+      )
+    }));
+  };
+
+  const addManualExercise = () => {
+    setManualPlan(prev => ({
+      ...prev,
+      exercises: [...prev.exercises, { id: Date.now(), name: '', sets: 3, reps: 10, rest: 60 }]
+    }));
+  };
+
+  const removeManualExercise = (id) => {
+    setManualPlan(prev => ({
+      ...prev,
+      exercises: prev.exercises.filter(ex => ex.id !== id)
+    }));
+  };
+
+  const saveManualPlan = () => {
+    // Logic to save the custom built plan
+    const finalPlan = {
+      ...manualPlan,
+      type: 'manual',
+      createdAt: new Date().toISOString()
+    };
+    console.log('Saving Manual Plan:', finalPlan);
+    navigate('/dashboard');
+  };
+
+  // --- RENDER HELPERS ---
+  
+  // 1. Selection Screen (Step 0)
+  const renderSelectionScreen = () => (
+    <div className="space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold text-day-text-primary dark:text-night-text-primary">How do you want to start?</h1>
+        <p className="text-day-text-secondary dark:text-night-text-secondary">Choose the best way to create your workout routine</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Option 1: AI Wizard (Original Code) */}
+        <Card 
+          className="p-8 cursor-pointer hover:border-day-accent-primary dark:hover:border-night-accent transition-all group"
+          onClick={() => setMode('wizard')}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform">
+              <Brain className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold">AI Assistant</h3>
+            <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
+              Answer a few questions and let our AI build a perfect personalized schedule for you.
+            </p>
+          </div>
+        </Card>
+
+        {/* Option 2: Manual Builder (New Feature) */}
+        <Card 
+          className="p-8 cursor-pointer hover:border-day-accent-primary dark:hover:border-night-accent transition-all group"
+          onClick={() => setMode('manual')}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300 group-hover:scale-110 transition-transform">
+              <PenTool className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold">Manual Builder</h3>
+            <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
+              Build your own plan from scratch. Choose specific exercises, sets, reps, and duration.
+            </p>
+          </div>
+        </Card>
+
+        {/* Option 3: Default Plans (New Feature) */}
+        <Card 
+          className="p-8 cursor-pointer hover:border-day-accent-primary dark:hover:border-night-accent transition-all group"
+          onClick={() => setMode('defaults')}
+        >
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="p-4 rounded-full bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300 group-hover:scale-110 transition-transform">
+              <List className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold">Pre-made Plans</h3>
+            <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">
+              Browse our library of expert-crafted workout templates and start immediately.
+            </p>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // 2. Manual Builder Screen
+  const renderManualBuilder = () => (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4 mb-6">
+        <Button variant="ghost" size="sm" onClick={() => setMode('selection')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-day-text-primary dark:text-night-text-primary">Custom Plan Builder</h1>
+          <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">Define your exercises, reps, and sets.</p>
+        </div>
+      </div>
+
+      <Card className="p-6 space-y-6">
+        {/* Plan Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Plan Name</label>
+            <input 
+              type="text" 
+              className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+              placeholder="e.g. My Heavy Lifting Routine"
+              value={manualPlan.name}
+              onChange={(e) => setManualPlan({...manualPlan, name: e.target.value})}
+            />
+          </div>
+          <div className="flex space-x-2">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Duration</label>
+              <input 
+                type="number" 
+                className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                value={manualPlan.durationValue}
+                onChange={(e) => setManualPlan({...manualPlan, durationValue: e.target.value})}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Unit</label>
+              <select 
+                className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                value={manualPlan.durationUnit}
+                onChange={(e) => setManualPlan({...manualPlan, durationUnit: e.target.value})}
+              >
+                <option value="weeks" className="bg-day-bg dark:bg-night-bg">Weeks</option>
+                <option value="months" className="bg-day-bg dark:bg-night-bg">Months</option>
+                <option value="years" className="bg-day-bg dark:bg-night-bg">Years</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-day-border dark:border-night-border pt-4">
+          <h3 className="font-semibold mb-4 flex items-center">
+            <Dumbbell className="w-4 h-4 mr-2" /> Exercises
+          </h3>
+          
+          <div className="space-y-4">
+            {manualPlan.exercises.map((ex, index) => (
+              <div key={ex.id} className="flex flex-col md:flex-row gap-3 items-end bg-day-bg dark:bg-night-bg p-4 rounded-lg">
+                <div className="flex-grow">
+                  <label className="text-xs text-day-text-secondary dark:text-night-text-secondary">Exercise Name</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Bench Press"
+                    className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                    value={ex.name}
+                    onChange={(e) => handleManualExerciseChange(ex.id, 'name', e.target.value)}
+                  />
+                </div>
+                <div className="w-20">
+                  <label className="text-xs text-day-text-secondary dark:text-night-text-secondary">Sets</label>
+                  <input 
+                    type="number"
+                    className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                    value={ex.sets}
+                    onChange={(e) => handleManualExerciseChange(ex.id, 'sets', e.target.value)}
+                  />
+                </div>
+                <div className="w-20">
+                  <label className="text-xs text-day-text-secondary dark:text-night-text-secondary">Reps</label>
+                  <input 
+                    type="number"
+                    className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                    value={ex.reps}
+                    onChange={(e) => handleManualExerciseChange(ex.id, 'reps', e.target.value)}
+                  />
+                </div>
+                <div className="w-24">
+                  <label className="text-xs text-day-text-secondary dark:text-night-text-secondary">Rest (sec)</label>
+                  <input 
+                    type="number"
+                    className="w-full p-2 rounded border bg-transparent border-day-border dark:border-night-border"
+                    value={ex.rest}
+                    onChange={(e) => handleManualExerciseChange(ex.id, 'rest', e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => removeManualExercise(ex.id)}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            className="mt-4 w-full border-2 border-dashed border-day-border dark:border-night-border"
+            onClick={addManualExercise}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add Exercise
+          </Button>
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <Button variant="primary" onClick={saveManualPlan}>
+            <Save className="w-4 h-4 mr-2" /> Save Custom Plan
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+
+  // 3. Default Plans Screen
+  const renderDefaultPlans = () => (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4 mb-6">
+        <Button variant="ghost" size="sm" onClick={() => setMode('selection')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-day-text-primary dark:text-night-text-primary">Select a Template</h1>
+          <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">Expertly crafted plans ready to go.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {defaultPlans.map(plan => (
+          <Card key={plan.id} className="p-6 hover:border-day-accent-primary dark:hover:border-night-accent cursor-pointer transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="font-bold text-lg">{plan.name}</h3>
+                <p className="text-sm text-day-text-secondary dark:text-night-text-secondary">{plan.focus}</p>
+              </div>
+              <Badge variant="primary">{plan.level}</Badge>
+            </div>
+            <div className="flex items-center text-sm text-day-text-secondary dark:text-night-text-secondary mb-4">
+              <Clock className="w-4 h-4 mr-2" /> {plan.duration}
+            </div>
+            <Button variant="ghost" className="w-full border border-day-border dark:border-night-border">
+              Select This Plan
+            </Button>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  // --- MAIN RENDER LOGIC ---
+  // If mode is selection, defaults, or manual, render those.
+  // If mode is 'wizard', render YOUR EXISTING CODE (preserved exactly).
+  
+  if (mode === 'selection') return <motion.div initial={{opacity:0}} animate={{opacity:1}}>{renderSelectionScreen()}</motion.div>;
+  if (mode === 'manual') return <motion.div initial={{opacity:0}} animate={{opacity:1}}>{renderManualBuilder()}</motion.div>;
+  if (mode === 'defaults') return <motion.div initial={{opacity:0}} animate={{opacity:1}}>{renderDefaultPlans()}</motion.div>;
+
+  // --- EXISTING WIZARD RENDER (Wrapped in mode === 'wizard') ---
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -219,7 +499,8 @@ const CreatePlan = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/')}
+          // Modified to go back to selection screen instead of home if on step 1
+          onClick={() => currentStep === 1 ? setMode('selection') : prevStep()}
           className="p-2"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -258,7 +539,7 @@ const CreatePlan = () => {
         ))}
       </div>
 
-      {/* Step Content */}
+      {/* Step Content - EXACTLY AS BEFORE */}
       <AnimatePresence mode="wait">
         {currentStep === 1 && (
           <motion.div

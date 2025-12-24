@@ -20,9 +20,11 @@ import CreatePlan from './pages/CreatePlan';
 import Goals from './pages/Goals';
 import Workouts from './pages/Workouts';
 import Progress from './pages/Progress';
+import TrackProgress from './pages/track-progress';
 import WorkoutSelection from './pages/WorkoutSelection';
 import AdminDashboard from './components/AdminDashboard';
 import Checkout from './pages/Checkout';
+import Shimmer from './components/Shimmer';
 
 // Auth Context
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -33,7 +35,7 @@ const PrivateRoute = ({ children }) => {
 
   console.log('PrivateRoute - user:', user, 'loading:', loading); // Debug log
 
-  if (loading) return <div>Loading...</div>; // Show loader while checking auth
+  if (loading) return <Shimmer/>; // Show loader while checking auth
   if (!user) {
     console.log('No user found, redirecting to login'); // Debug log
     return <Navigate to="/login" replace />; // Redirect if not logged in
@@ -71,6 +73,7 @@ const App = () => {
                   <Route path="goals" element={<Goals />} />
                   <Route path="workouts" element={<Workouts />} />
                   <Route path="progress" element={<Progress />} />
+                  <Route path="track-progress" element={<TrackProgress />} />
                   <Route path="workout-selection" element={<WorkoutSelection />} />
                   
                   <Route path="profile" element={<Profile />} />
