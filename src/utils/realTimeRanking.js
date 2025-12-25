@@ -6,7 +6,9 @@ import { getDatabase, ref, get, onValue, off } from 'firebase/database';
 import { auth } from '../firebase';
 
 const rtdb = getDatabase();
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// In production (Vercel), use relative paths. In development, use localhost
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api');
 
 // Ranking weights configuration
 const RANKING_WEIGHTS = {
