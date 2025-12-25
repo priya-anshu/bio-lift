@@ -18,26 +18,44 @@ import {
   TrophyIcon as TrophySolidIcon,
   FireIcon as FireSolidIcon 
 } from '@heroicons/react/24/solid';
+import { useTheme } from '../context/ThemeContext';
 
 const RankCard = ({ userId, showInsights = true }) => {
+  const { isDarkMode } = useTheme();
   const [userRanking, setUserRanking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [insights, setInsights] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch user ranking data
+  // Fetch user ranking data from Node.js API
   const fetchUserRanking = async () => {
     try {
       setLoading(true);
       setError(null);
       
+      // Get Firebase auth token
+      const { auth } = await import('../firebase');
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('User must be authenticated');
+      }
+      
+      const token = await currentUser.getIdToken();
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+      
       const response = await fetch(
-        `https://us-central1-biolift-c37b6.cloudfunctions.net/getUserRanking?userId=${userId}`
+        `${API_BASE_URL}/user-ranking/${userId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch user ranking data');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch user ranking data');
       }
       
       const data = await response.json();
@@ -55,31 +73,62 @@ const RankCard = ({ userId, showInsights = true }) => {
     }
   };
 
-  // Fetch user insights
+  // Fetch user insights (generated from ranking data)
   const fetchUserInsights = async () => {
-    if (!showInsights) return;
+    if (!showInsights || !userRanking) return;
     
     try {
-      const response = await fetch(
-        `https://us-central1-biolift-c37b6.cloudfunctions.net/getUserInsights?userId=${userId}`
-      );
+      // Generate insights from ranking data
+      const generatedInsights = {
+        insights: [],
+        recommendations: []
+      };
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setInsights(data.data);
-        }
+      // Strength insights
+      if (userRanking.strengthScore < 20) {
+        generatedInsights.insights.push('Your strength score is below average. Focus on progressive overload.');
+        generatedInsights.recommendations.push('Increase your training volume gradually each week.');
+      } else if (userRanking.strengthScore > 60) {
+        generatedInsights.insights.push('Excellent strength performance! You\'re in the top tier.');
       }
+      
+      // Consistency insights
+      if (userRanking.consistencyScore < 30) {
+        generatedInsights.insights.push('Consistency is key. Try to maintain a regular workout schedule.');
+        generatedInsights.recommendations.push('Aim for at least 3-4 workouts per week.');
+      }
+      
+      // Improvement insights
+      if (userRanking.improvementScore > 50) {
+        generatedInsights.insights.push('Great progress! You\'re improving steadily.');
+      }
+      
+      // Tier-based recommendations
+      if (userRanking.tier === 'Bronze') {
+        generatedInsights.recommendations.push('Focus on building a consistent workout routine.');
+      } else if (userRanking.tier === 'Silver') {
+        generatedInsights.recommendations.push('You\'re making good progress. Keep pushing!');
+      } else if (userRanking.tier === 'Gold' || userRanking.tier === 'Platinum') {
+        generatedInsights.recommendations.push('You\'re in the top tier! Maintain your performance.');
+      }
+      
+      setInsights(generatedInsights);
     } catch (err) {
-      console.error('Error fetching user insights:', err);
+      console.error('Error generating user insights:', err);
     }
   };
 
   // Initial data fetch
   useEffect(() => {
     fetchUserRanking();
-    fetchUserInsights();
   }, [userId]);
+  
+  // Fetch insights after ranking data is loaded
+  useEffect(() => {
+    if (userRanking) {
+      fetchUserInsights();
+    }
+  }, [userRanking, showInsights]);
 
   // Get tier color and icon
   const getTierInfo = (tier) => {
@@ -94,27 +143,27 @@ const RankCard = ({ userId, showInsights = true }) => {
         };
       case 'Platinum':
         return { 
-          color: 'text-gray-600', 
-          bgColor: 'bg-gray-50', 
-          borderColor: 'border-gray-200',
+          color: 'text-gray-600 dark:text-gray-300', 
+          bgColor: 'bg-gray-50 dark:bg-gray-800/50', 
+          borderColor: 'border-gray-200 dark:border-gray-700',
           icon: TrophySolidIcon,
-          gradient: 'from-gray-500 to-gray-600'
+          gradient: 'from-gray-500 to-gray-600 dark:from-gray-600 dark:to-gray-700'
         };
       case 'Gold':
         return { 
-          color: 'text-yellow-500', 
-          bgColor: 'bg-yellow-50', 
-          borderColor: 'border-yellow-200',
+          color: 'text-yellow-500 dark:text-yellow-400', 
+          bgColor: 'bg-yellow-50 dark:bg-yellow-900/30', 
+          borderColor: 'border-yellow-200 dark:border-yellow-800',
           icon: TrophySolidIcon,
-          gradient: 'from-yellow-500 to-yellow-600'
+          gradient: 'from-yellow-500 to-yellow-600 dark:from-yellow-600 dark:to-yellow-700'
         };
       case 'Silver':
         return { 
-          color: 'text-gray-400', 
-          bgColor: 'bg-gray-50', 
-          borderColor: 'border-gray-200',
+          color: 'text-gray-400 dark:text-gray-500', 
+          bgColor: 'bg-gray-50 dark:bg-gray-800/50', 
+          borderColor: 'border-gray-200 dark:border-gray-700',
           icon: TrophyIcon,
-          gradient: 'from-gray-400 to-gray-500'
+          gradient: 'from-gray-400 to-gray-500 dark:from-gray-500 dark:to-gray-600'
         };
       default:
         return { 
@@ -146,7 +195,7 @@ const RankCard = ({ userId, showInsights = true }) => {
         );
       default:
         return (
-          <div className="flex items-center text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
+          <div className="flex items-center text-day-text-secondary dark:text-night-text-secondary bg-day-card dark:bg-night-card px-2 py-1 rounded-full">
             <MinusIcon className="w-4 h-4 mr-1" />
             <span className="text-sm font-medium">No change</span>
           </div>
@@ -169,23 +218,23 @@ const RankCard = ({ userId, showInsights = true }) => {
 
   // Loading skeleton
   const LoadingSkeleton = () => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-day-card dark:bg-night-card rounded-lg shadow-sm border border-day-border dark:border-night-border p-6">
       <div className="animate-pulse">
         <div className="flex items-center space-x-4 mb-6">
-          <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+          <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
           <div className="flex-1">
-            <div className="h-6 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+            <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-1/2"></div>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 rounded"></div>
+            <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
           ))}
         </div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-4 bg-gray-200 rounded"></div>
+            <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
           ))}
         </div>
       </div>
@@ -218,10 +267,10 @@ const RankCard = ({ userId, showInsights = true }) => {
 
   if (!userRanking) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-        <UserIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">User Not Found</h3>
-        <p className="text-gray-600">No ranking data available for this user.</p>
+      <div className="bg-day-card dark:bg-night-card border border-day-border dark:border-night-border rounded-lg p-6 text-center">
+        <UserIcon className="mx-auto h-12 w-12 text-day-text-secondary dark:text-night-text-secondary mb-4" />
+        <h3 className="text-lg font-medium text-day-text-primary dark:text-night-text-primary mb-2">User Not Found</h3>
+        <p className="text-day-text-secondary dark:text-night-text-secondary">No ranking data available for this user.</p>
       </div>
     );
   }
@@ -230,7 +279,7 @@ const RankCard = ({ userId, showInsights = true }) => {
   const TierIcon = tierInfo.icon;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-day-card dark:bg-night-card rounded-lg shadow-sm border border-day-border dark:border-night-border overflow-hidden">
       {/* Header */}
       <div className={`bg-gradient-to-r ${tierInfo.gradient} text-white p-6`}>
         <div className="flex items-center justify-between">
@@ -264,7 +313,7 @@ const RankCard = ({ userId, showInsights = true }) => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-day-border dark:border-night-border">
         <nav className="flex space-x-8 px-6">
           {[
             { key: 'overview', label: 'Overview', icon: ChartBarIcon },
@@ -278,8 +327,8 @@ const RankCard = ({ userId, showInsights = true }) => {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-day-accent-primary dark:border-night-accent text-day-accent-primary dark:text-night-accent'
+                    : 'border-transparent text-day-text-secondary dark:text-night-text-secondary hover:text-day-text-primary dark:hover:text-night-text-primary hover:border-day-border dark:hover:border-night-border'
                 }`}
               >
                 <Icon className="w-4 h-4 mr-2" />
@@ -339,11 +388,11 @@ const RankCard = ({ userId, showInsights = true }) => {
                         {metric.score?.toFixed(1) || '0.0'}
                       </span>
                     </div>
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-day-text-primary dark:text-night-text-primary">
                       {metric.label}
                     </div>
                     <div className="mt-2">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className={`${metric.color.replace('text-', 'bg-')} h-2 rounded-full transition-all duration-300`}
                           style={{ width: `${getScorePercentage(metric.score)}%` }}
@@ -356,25 +405,25 @@ const RankCard = ({ userId, showInsights = true }) => {
             </div>
 
             {/* Performance Summary */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Performance Summary</h3>
+            <div className="bg-day-hover dark:bg-night-hover rounded-lg p-4">
+              <h3 className="text-lg font-medium text-day-text-primary dark:text-night-text-primary mb-3">Performance Summary</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">Current Rank:</span>
-                  <span className="ml-2 font-medium">#{userRanking.currentRank}</span>
+                  <span className="text-day-text-secondary dark:text-night-text-secondary">Current Rank:</span>
+                  <span className="ml-2 font-medium text-day-text-primary dark:text-night-text-primary">#{userRanking.currentRank}</span>
                 </div>
                 {userRanking.previousRank && (
                   <div>
-                    <span className="text-gray-600">Previous Rank:</span>
-                    <span className="ml-2 font-medium">#{userRanking.previousRank}</span>
+                    <span className="text-day-text-secondary dark:text-night-text-secondary">Previous Rank:</span>
+                    <span className="ml-2 font-medium text-day-text-primary dark:text-night-text-primary">#{userRanking.previousRank}</span>
                   </div>
                 )}
                 <div>
-                  <span className="text-gray-600">Tier:</span>
-                  <span className="ml-2 font-medium">{userRanking.tier || 'Bronze'}</span>
+                  <span className="text-day-text-secondary dark:text-night-text-secondary">Tier:</span>
+                  <span className="ml-2 font-medium text-day-text-primary dark:text-night-text-primary">{userRanking.tier || 'Bronze'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Last Updated:</span>
+                  <span className="text-day-text-secondary dark:text-night-text-secondary">Last Updated:</span>
                   <span className="ml-2 font-medium">
                     {userRanking.lastUpdated ? new Date(userRanking.lastUpdated).toLocaleDateString() : 'N/A'}
                   </span>
@@ -420,18 +469,18 @@ const RankCard = ({ userId, showInsights = true }) => {
               ].map((metric) => {
                 const Icon = metric.icon;
                 return (
-                  <div key={metric.label} className="border border-gray-200 rounded-lg p-4">
+                  <div key={metric.label} className="border border-day-border dark:border-night-border rounded-lg p-4 bg-day-card dark:bg-night-card">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <Icon className="w-5 h-5 text-gray-600" />
-                        <span className="font-medium text-gray-900">{metric.label}</span>
+                        <Icon className="w-5 h-5 text-day-text-secondary dark:text-night-text-secondary" />
+                        <span className="font-medium text-day-text-primary dark:text-night-text-primary">{metric.label}</span>
                       </div>
                       <span className={`text-lg font-bold ${getScoreColor(metric.score)}`}>
                         {metric.score?.toFixed(1) || '0.0'}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">{metric.description}</p>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <p className="text-sm text-day-text-secondary dark:text-night-text-secondary mb-3">{metric.description}</p>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div
                         className={`${getScoreColor(metric.score).replace('text-', 'bg-')} h-3 rounded-full transition-all duration-300`}
                         style={{ width: `${getScorePercentage(metric.score)}%` }}
@@ -490,9 +539,9 @@ const RankCard = ({ userId, showInsights = true }) => {
               </>
             ) : (
               <div className="text-center py-8">
-                <LightBulbIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights Available</h3>
-                <p className="text-gray-600">
+                <LightBulbIcon className="mx-auto h-12 w-12 text-day-text-secondary dark:text-night-text-secondary mb-4" />
+                <h3 className="text-lg font-medium text-day-text-primary dark:text-night-text-primary mb-2">No Insights Available</h3>
+                <p className="text-day-text-secondary dark:text-night-text-secondary">
                   Insights will be generated as you continue to use the platform.
                 </p>
               </div>

@@ -1,11 +1,12 @@
 // Real-time Smart Ranking System
-// Uses Firestore for data storage + Real-time Database for live updates
+// Uses Node.js backend API + Firebase Realtime Database for live updates
 
 import { db } from '../firebase';
-import { doc, setDoc, getDoc, getDocs, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { getDatabase, ref, set, get, onValue, off } from 'firebase/database';
+import { getDatabase, ref, get, onValue, off } from 'firebase/database';
+import { auth } from '../firebase';
 
 const rtdb = getDatabase();
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 // Ranking weights configuration
 const RANKING_WEIGHTS = {
@@ -96,24 +97,33 @@ export const calculateUserTier = (score, totalUsers, userRank) => {
 };
 
 /**
- * Update user's ranking data in Firestore
+ * Update user's ranking data via Node.js API
  */
 export const updateUserRanking = async (userId, userData) => {
   try {
-    // Calculate new score
-    const scoreData = calculateUserScore(userData);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated');
+    }
     
-    // Update user metrics with calculated scores
-    await setDoc(doc(db, 'userMetrics', userId), {
-      ...userData,
-      ...scoreData,
-      lastUpdated: new Date()
-    }, { merge: true });
-
-    // Trigger ranking recalculation
-    await recalculateAllRankings();
+    const token = await currentUser.getIdToken();
     
-    return scoreData;
+    const response = await fetch(`${API_BASE_URL}/update-user-metrics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update ranking');
+    }
+    
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Error updating user ranking:', error);
     throw error;
@@ -121,60 +131,33 @@ export const updateUserRanking = async (userId, userData) => {
 };
 
 /**
- * Recalculate all user rankings and update real-time database
+ * Recalculate all user rankings via Node.js API (Admin only)
  */
 export const recalculateAllRankings = async () => {
   try {
-    console.log('🔄 Recalculating all rankings...');
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated');
+    }
     
-    // Get all users with metrics
-    const usersSnapshot = await getDocs(collection(db, 'userMetrics'));
-    const users = [];
+    const token = await currentUser.getIdToken();
     
-    usersSnapshot.forEach(doc => {
-      users.push({
-        userId: doc.id,
-        ...doc.data()
-      });
-    });
-
-    // Calculate scores and sort by total score
-    const rankedUsers = users
-      .map(user => ({
-        ...user,
-        score: user.totalScore || 0
-      }))
-      .sort((a, b) => b.score - a.score)
-      .map((user, index) => ({
-        ...user,
-        rank: index + 1,
-        tier: calculateUserTier(user.score, users.length, index + 1),
-        rankChange: 'stable', // Will be calculated later
-        rankDelta: 0,
-        lastUpdated: new Date()
-      }));
-
-    // Store in Firestore for persistence
-    await setDoc(doc(db, 'rankings', 'overall'), {
-      rankings: rankedUsers,
-      lastUpdated: new Date(),
-      totalUsers: rankedUsers.length,
-      metadata: {
-        type: "overall",
-        description: "Real-time user rankings"
+    const response = await fetch(`${API_BASE_URL}/recalculate-rankings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
     });
-
-    // Update real-time database for live updates
-    await set(ref(rtdb, 'leaderboard/overall'), {
-      rankings: rankedUsers,
-      lastUpdated: Date.now(),
-      totalUsers: rankedUsers.length
-    });
-
-    console.log(`✅ Rankings updated for ${rankedUsers.length} users`);
-    return rankedUsers;
     
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to recalculate rankings');
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Rankings recalculated: ${data.message}`);
+    return data;
   } catch (error) {
     console.error('Error recalculating rankings:', error);
     throw error;
@@ -200,49 +183,104 @@ export const subscribeToLeaderboard = (type = 'overall', callback) => {
 };
 
 /**
- * Get current leaderboard data
+ * Get current leaderboard data from Node.js API
  */
-export const getCurrentLeaderboard = async (type = 'overall') => {
+export const getCurrentLeaderboard = async (type = 'overall', limit = 50, offset = 0) => {
   try {
-    // Try real-time database first
-    const rtdbRef = ref(rtdb, `leaderboard/${type}`);
-    const rtdbSnapshot = await get(rtdbRef);
+    const response = await fetch(
+      `${API_BASE_URL}/leaderboard?type=${type}&limit=${limit}&offset=${offset}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     
-    if (rtdbSnapshot.exists()) {
-      return rtdbSnapshot.val().rankings || [];
+    if (!response.ok) {
+      throw new Error(`Failed to fetch leaderboard: ${response.statusText}`);
     }
     
-    // Fallback to Firestore
-    const firestoreDoc = await getDoc(doc(db, 'rankings', type));
-    if (firestoreDoc.exists()) {
-      return firestoreDoc.data().rankings || [];
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data || [];
     }
     
     return [];
   } catch (error) {
+    // Check if it's a connection error (server not running)
+    if (
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('ERR_CONNECTION_REFUSED') ||
+      error.name === 'TypeError'
+    ) {
+      console.warn(
+        '⚠️ Ranking server is not running. Please start the Node.js server:\n' +
+        '  1. Open a new terminal\n' +
+        '  2. cd server\n' +
+        '  3. npm install (if not done)\n' +
+        '  4. npm run dev\n\n' +
+        'The leaderboard will work once the server is running.'
+      );
+      
+      // Return empty array gracefully - don't try RTDB fallback if server isn't running
+      return [];
+    }
+    
     console.error('Error getting leaderboard:', error);
+    
+    // Only try RTDB fallback if user is authenticated and it's not a connection error
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.warn('User not authenticated. Cannot fetch leaderboard from RTDB.');
+        return [];
+      }
+      
+      const rtdbRef = ref(rtdb, `leaderboard/${type}`);
+      const rtdbSnapshot = await get(rtdbRef);
+      
+      if (rtdbSnapshot.exists()) {
+        const data = rtdbSnapshot.val();
+        const rankings = data.rankings || [];
+        return rankings.slice(offset, offset + limit);
+      }
+    } catch (fallbackError) {
+      // Silently handle permission errors - they're expected if RTDB rules aren't set
+      if (!fallbackError.message?.includes('Permission denied')) {
+        console.warn('Fallback to RTDB failed:', fallbackError.message);
+      }
+    }
+    
     return [];
   }
 };
 
 /**
- * Update user workout data and trigger ranking update
+ * Update user workout data and trigger ranking update via Node.js API
  */
 export const updateUserWorkout = async (userId, workoutData) => {
   try {
-    // Get current user metrics
-    const userDoc = await getDoc(doc(db, 'userMetrics', userId));
-    const currentMetrics = userDoc.exists() ? userDoc.data() : {};
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated');
+    }
+    
+    // Get current metrics from RTDB
+    const userRef = ref(rtdb, `users/${userId}`);
+    const userSnapshot = await get(userRef);
+    const currentMetrics = userSnapshot.exists() ? userSnapshot.val() : {};
     
     // Update with new workout data
     const updatedMetrics = {
       ...currentMetrics,
       ...workoutData,
-      lastWorkoutDate: new Date(),
+      lastWorkoutDate: new Date().toISOString(),
       totalWorkouts: (currentMetrics.totalWorkouts || 0) + 1
     };
     
-    // Update user ranking
+    // Update user ranking via Node.js API
     await updateUserRanking(userId, updatedMetrics);
     
     console.log(`✅ Workout updated for user ${userId}`);
@@ -254,24 +292,50 @@ export const updateUserWorkout = async (userId, workoutData) => {
 };
 
 /**
- * Initialize the ranking system
+ * Get current user's ranking
+ */
+export const getMyRanking = async (type = 'overall') => {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('User must be authenticated');
+    }
+    
+    const token = await currentUser.getIdToken();
+    
+    const response = await fetch(
+      `${API_BASE_URL}/my-ranking?type=${type}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch your ranking');
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.data;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting my ranking:', error);
+    return null;
+  }
+};
+
+/**
+ * Initialize the ranking system (no longer needed, handled by Node.js backend)
  */
 export const initializeRankingSystem = async () => {
   try {
-    // Set up ranking weights
-    await setDoc(doc(db, 'systemConfig', 'rankingWeights'), {
-      ...RANKING_WEIGHTS,
-      lastUpdated: new Date()
-    });
-    
-    // Initialize real-time database structure
-    await set(ref(rtdb, 'leaderboard'), {
-      overall: { rankings: [], lastUpdated: Date.now(), totalUsers: 0 },
-      weekly: { rankings: [], lastUpdated: Date.now(), totalUsers: 0 },
-      monthly: { rankings: [], lastUpdated: Date.now(), totalUsers: 0 }
-    });
-    
-    console.log('✅ Ranking system initialized');
+    console.log('✅ Ranking system initialized (handled by Node.js backend)');
   } catch (error) {
     console.error('Error initializing ranking system:', error);
   }

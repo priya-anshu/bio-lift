@@ -33,7 +33,21 @@ const Ranking = () => {
       case 'leaderboard':
         return <Leaderboard />;
       case 'my-rank':
-        return user ? <RankCard userId={user.uid} showInsights={true} /> : <div>Please log in to view your ranking</div>;
+        return user ? (
+          <div className="space-y-6">
+            <RankCard userId={user.uid} showInsights={true} />
+            {/* Live ranking indicator */}
+            <div className="text-center text-sm text-day-text-secondary dark:text-night-text-secondary">
+              <p>Your ranking updates in real-time as you log workouts and progress</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-day-text-secondary dark:text-night-text-secondary">
+              Please log in to view your ranking
+            </p>
+          </div>
+        );
       case 'admin':
         return isAdmin ? <AdminDashboard /> : <div>Access denied</div>;
       default:
@@ -102,3 +116,4 @@ const Ranking = () => {
 };
 
 export default Ranking; 
+

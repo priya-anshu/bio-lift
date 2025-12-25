@@ -45,7 +45,7 @@ const TrackProgress = () => {
   // Normalize and sort entries by date
   const normalizeHistory = (historyArray) => {
     if (!historyArray) return [];
-    
+
     const mapped = Object.entries(historyArray || {}).map(([id, item]) => {
       const rawDate = item.date || item.timestamp || '';
       const parsed = new Date(rawDate);
@@ -115,7 +115,7 @@ const TrackProgress = () => {
     let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (let i = sorted.length - 1; i >= 0; i--) {
       const entryDate = sorted[i].parsedDate;
       if (!entryDate) continue;
@@ -322,7 +322,7 @@ const TrackProgress = () => {
       : null;
 
   const latestVolume = latestPoint.volume ?? 0;
-  const avgWeeklyVolume = allEntries.length > 0 
+  const avgWeeklyVolume = allEntries.length > 0
     ? allEntries.slice(-7).reduce((sum, e) => sum + (e.volume || 0), 0) / Math.min(7, allEntries.length)
     : 0;
   const volumeProgressPercent =
@@ -396,17 +396,15 @@ const TrackProgress = () => {
             <div className="flex bg-day-card dark:bg-night-card p-1 rounded-lg border border-day-border dark:border-night-border">
               <button
                 onClick={() => setActiveTab('overview')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-gray-500'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-gray-500'
+                  }`}
               >
                 Overview
               </button>
               <button
                 onClick={() => setActiveTab('charts')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === 'charts' ? 'bg-blue-600 text-white' : 'text-gray-500'
-                }`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'charts' ? 'bg-blue-600 text-white' : 'text-gray-500'
+                  }`}
               >
                 Charts
               </button>
@@ -519,11 +517,10 @@ const TrackProgress = () => {
                       key={option.key}
                       type="button"
                       onClick={() => setTimeframe(option.key)}
-                      className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        timeframe === option.key
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${timeframe === option.key
                           ? 'bg-blue-600 text-white'
                           : 'text-day-text-secondary dark:text-night-text-secondary hover:bg-slate-700/50'
-                      }`}
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -570,8 +567,8 @@ const TrackProgress = () => {
                     {remainingToGoal > 0
                       ? `${remainingToGoal.toFixed(1)} kg away from goal`
                       : remainingToGoal < 0
-                      ? `Exceeded goal by ${Math.abs(remainingToGoal).toFixed(1)} kg`
-                      : 'Goal reached!'}
+                        ? `Exceeded goal by ${Math.abs(remainingToGoal).toFixed(1)} kg`
+                        : 'Goal reached!'}
                   </p>
                 )}
               </Card>
@@ -667,11 +664,11 @@ const TrackProgress = () => {
                 <div className="text-2xl font-bold text-day-text-primary dark:text-night-text-primary">
                   {allEntries.length > 0 && allEntries.filter((e) => e.weight).length > 0
                     ? `${(
-                        allEntries
-                          .filter((e) => e.weight)
-                          .reduce((sum, e) => sum + e.weight, 0) /
-                        allEntries.filter((e) => e.weight).length
-                      ).toFixed(1)} kg`
+                      allEntries
+                        .filter((e) => e.weight)
+                        .reduce((sum, e) => sum + e.weight, 0) /
+                      allEntries.filter((e) => e.weight).length
+                    ).toFixed(1)} kg`
                     : '--'}
                 </div>
               </Card>
@@ -698,11 +695,10 @@ const TrackProgress = () => {
                       key={option.key}
                       type="button"
                       onClick={() => setTimeframe(option.key)}
-                      className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        timeframe === option.key
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${timeframe === option.key
                           ? 'bg-blue-600 text-white'
                           : 'text-day-text-secondary dark:text-night-text-secondary hover:bg-slate-700/50'
-                      }`}
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -718,6 +714,7 @@ const TrackProgress = () => {
                   Weight Trend
                 </h3>
                 <div style={{ width: '100%', height: 350 }}>
+
                   <ResponsiveContainer>
                     <AreaChart data={chartHistory}>
                       <defs>
